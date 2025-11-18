@@ -100,6 +100,6 @@ substitutions:
 timeout: 1800s
 options:
   logging: CLOUD_LOGGING_ONLY
-  env:
-    - DOCKER_BUILDKIT=1
-    - BUILDKIT_PROGRESS=plain
+  # env:
+  #   - DOCKER_BUILDKIT=1
+  #   - BUILDKIT_PROGRESS=plain
