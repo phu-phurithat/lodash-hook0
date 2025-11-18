@@ -5,17 +5,17 @@
 
 steps:
 
-  # # Ensure Dockerfiles use modern BuildKit syntax
-  # - name: gcr.io/cloud-builders/gcloud
-  #   id: enable-buildkit
-  #   entrypoint: bash
-  #   args:
-  #     - -c
-  #     - |
-  #       echo "🔧 Enabling BuildKit syntax headers if missing..."
-  #       for f in ./api/Dockerfile ./frontend/Dockerfile ./output-worker/Dockerfile; do
-  #         grep -q "syntax=docker/dockerfile" "$f" || sed -i '1i# syntax=docker/dockerfile:1.7' "$f"
-  #       done
+  # Ensure Dockerfiles use modern BuildKit syntax
+  - name: gcr.io/cloud-builders/gcloud
+    id: enable-buildkit
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "🔧 Enabling BuildKit syntax headers if missing..."
+        for f in ./api/Dockerfile ./frontend/Dockerfile ./output-worker/Dockerfile; do
+          grep -q "syntax=docker/dockerfile" "$f" || sed -i '1i# syntax=docker/dockerfile:1.7' "$f"
+        done
 
   # Update frontend Dockerfile ARG (inject API endpoint)
   - name: gcr.io/cloud-builders/gcloud
@@ -38,7 +38,7 @@ steps:
         "--build-arg=FEATURES=reqwest-rustls-tls-webpki-roots,application-secret-compatibility",
         "."
       ]
-    # waitFor: ["enable-buildkit"]
+    waitFor: ["enable-buildkit"]
 
   # Build Frontend image
   - name: gcr.io/cloud-builders/docker
@@ -50,7 +50,7 @@ steps:
         "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME",
         "."
       ]
-    # waitFor: ["update-frontend-arg"]
+    waitFor: ["update-frontend-arg"]
 
   # Build Output-Worker image
   - name: gcr.io/cloud-builders/docker
@@ -62,7 +62,7 @@ steps:
         "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME",
         "."
       ]
-    # waitFor: ["enable-buildkit"]
+    waitFor: ["enable-buildkit"]
 
   # Summary log
   - name: gcr.io/cloud-builders/gcloud
@@ -100,6 +100,6 @@ substitutions:
 timeout: 1800s
 options:
   logging: CLOUD_LOGGING_ONLY
-  # env:
-  #   - DOCKER_BUILDKIT=1
-  #   - BUILDKIT_PROGRESS=plain
+  env:
+    - DOCKER_BUILDKIT=1
+    - BUILDKIT_PROGRESS=plain
