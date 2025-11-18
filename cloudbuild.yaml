@@ -1,0 +1,105 @@
+# ------------------------------------------------------------
+# Hook0 Cloud Build Pipeline
+# Builds and pushes API, Frontend, and Output-Worker in parallel
+# ------------------------------------------------------------
+
+steps:
+
+  # # Ensure Dockerfiles use modern BuildKit syntax
+  # - name: gcr.io/cloud-builders/gcloud
+  #   id: enable-buildkit
+  #   entrypoint: bash
+  #   args:
+  #     - -c
+  #     - |
+  #       echo "🔧 Enabling BuildKit syntax headers if missing..."
+  #       for f in ./api/Dockerfile ./frontend/Dockerfile ./output-worker/Dockerfile; do
+  #         grep -q "syntax=docker/dockerfile" "$f" || sed -i '1i# syntax=docker/dockerfile:1.7' "$f"
+  #       done
+
+  # Update frontend Dockerfile ARG (inject API endpoint)
+  - name: gcr.io/cloud-builders/gcloud
+    id: update-frontend-arg
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "🌐 Injecting API endpoint into frontend Dockerfile"
+        sed -i "s|^ARG API_ENDPOINT=.*|ARG API_ENDPOINT=${_ENV_API_ENDPOINT}/api/v1|g" ./frontend/Dockerfile
+
+  # Build API image
+  - name: gcr.io/cloud-builders/docker
+    id: build-api
+    args:
+      [
+        "build",
+        "--file=./api/Dockerfile",
+        "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME",
+        "--build-arg=FEATURES=reqwest-rustls-tls-webpki-roots,application-secret-compatibility",
+        "."
+      ]
+    waitFor: ["enable-buildkit"]
+
+  # Build Frontend image
+  - name: gcr.io/cloud-builders/docker
+    id: build-frontend
+    args:
+      [
+        "build",
+        "--file=./frontend/Dockerfile",
+        "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME",
+        "."
+      ]
+    waitFor: ["update-frontend-arg"]
+
+  # Build Output-Worker image
+  - name: gcr.io/cloud-builders/docker
+    id: build-worker
+    args:
+      [
+        "build",
+        "--file=./output-worker/Dockerfile",
+        "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME",
+        "."
+      ]
+    waitFor: ["enable-buildkit"]
+
+  # Summary log
+  - name: gcr.io/cloud-builders/gcloud
+    id: summary
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "✅ All images built and pushed successfully!"
+        echo "---------------------------------------------"
+        echo " - asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME"
+        echo " - asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME"
+        echo " - asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME"
+
+# ------------------------------------------------------------
+# Record built images for Cloud Build UI visibility
+# ------------------------------------------------------------
+images:
+  - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME"
+  - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME"
+  - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME"
+
+# ------------------------------------------------------------
+# Substitutions (custom variables)
+# ------------------------------------------------------------
+substitutions:
+  _DEPLOYMENT_API: hook0-api
+  _DEPLOYMENT_FRONTEND: hook0-frontend
+  _DEPLOYMENT_OUTPUTWORKER: hook0-outputworker
+  _ENV_API_ENDPOINT: "https://api.hook0.devenvphu.men"
+
+# ------------------------------------------------------------
+# Global options
+# ------------------------------------------------------------
+timeout: 1800s
+options:
+  logging: CLOUD_LOGGING_ONLY
+  env:
+    - DOCKER_BUILDKIT=1
+    - BUILDKIT_PROGRESS=plain
