@@ -6,16 +6,16 @@
 steps:
 
   # Ensure Dockerfiles use modern BuildKit syntax
-  # - name: gcr.io/cloud-builders/gcloud
-  #   id: enable-buildkit
-  #   entrypoint: bash
-  #   args:
-  #     - -c
-  #     - |
-  #       echo "🔧 Enabling BuildKit syntax headers if missing..."
-  #       for f in ./api/Dockerfile ./frontend/Dockerfile ./output-worker/Dockerfile; do
-  #         grep -q "syntax=docker/dockerfile" "$f" || sed -i '1i# syntax=docker/dockerfile:1.7' "$f"
-  #       done
+  - name: gcr.io/cloud-builders/gcloud
+    id: enable-buildkit
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "🔧 Enabling BuildKit syntax headers if missing..."
+        for f in ./api/Dockerfile ./frontend/Dockerfile ./output-worker/Dockerfile; do
+          grep -q "syntax=docker/dockerfile" "$f" || sed -i '1i# syntax=docker/dockerfile:1.7' "$f"
+        done
 
   # Build API image
   - name: gcr.io/cloud-builders/docker
