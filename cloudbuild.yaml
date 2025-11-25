@@ -17,18 +17,6 @@ steps:
           grep -q "syntax=docker/dockerfile" "$f" || sed -i '1i# syntax=docker/dockerfile:1.7' "$f"
         done
 
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:v2.0.0 || exit 0']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:v2.0.0 || exit 0']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:v2.0.0 || exit 0']
-    
   # Build API image
   - name: gcr.io/cloud-builders/docker
     id: build-api
@@ -42,12 +30,6 @@ steps:
         "."
       ]
     waitFor: ["-"]
-
-  # Tag API image as latest
-  - name: gcr.io/cloud-builders/docker
-    id: tag-api-latest
-    args: ['tag', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:latest']
-    waitFor: ['build-api']
 
   # Build Frontend image
   - name: gcr.io/cloud-builders/docker
@@ -65,12 +47,6 @@ steps:
       ]
     waitFor: ["-"]
 
-  # Tag Frontend image as latest
-  - name: gcr.io/cloud-builders/docker
-    id: tag-frontend-latest
-    args: ['tag', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:latest']
-    waitFor: ['build-frontend']
-
   # Build Output-Worker image
   - name: gcr.io/cloud-builders/docker
     id: build-worker
@@ -84,22 +60,13 @@ steps:
       ]
     waitFor: ["-"]
 
-  # Tag Output-Worker image as latest
-  - name: gcr.io/cloud-builders/docker
-    id: tag-worker-latest
-    args: ['tag', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:latest']
-    waitFor: ['build-worker']
-
 # ------------------------------------------------------------
 # Record built images for Cloud Build UI visibility
 # ------------------------------------------------------------
 images:
   - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME"
-  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:latest"
   - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME"
-  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:latest"
   - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME"
-  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:latest"
 
 # ------------------------------------------------------------
 # Substitutions (custom variables)
@@ -115,6 +82,7 @@ substitutions:
 # Global options
 # ------------------------------------------------------------
 options:
+  machineType: "E2_HIGHCPU_8"
   logging: CLOUD_LOGGING_ONLY
   env:
     - DOCKER_BUILDKIT=1
