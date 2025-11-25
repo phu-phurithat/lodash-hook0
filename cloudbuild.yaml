@@ -18,15 +18,13 @@ steps:
         done
 
   - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME:v2.0.0 || exit 0']
+    args: ['pull', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME:v2.0.0 || exit 0']
 
   - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME:v2.0.0 || exit 0']
+    args: ['pull', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME:v2.0.0 || exit 0']
+
   - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME:v2.0.0 || exit 0']
+    args: ['pull', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME:v2.0.0 || exit 0']
     
   # Build API image
   - name: gcr.io/cloud-builders/docker
