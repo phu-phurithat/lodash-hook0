@@ -25,7 +25,7 @@ steps:
         "build",
         "--file=./api/Dockerfile",
         "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME",
-        "--build-arg=FEATURES='reqwest-rustls-tls-webpki-roots,application-secret-compatibility'",
+        "--build-arg=FEATURES=reqwest-rustls-tls-webpki-roots,application-secret-compatibility",
         "."
       ]
     waitFor: ["-"]
