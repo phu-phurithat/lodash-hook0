@@ -1,0 +1,26 @@
+# Exclude version control
+.git
+.gitignore
+
+# Exclude build artifacts
+target/
+
+# Exclude documentation
+*.md
+docs/
+website/
+
+# Exclude test files if not needed
+e2e-tests/
+
+# Exclude IDE files
+.vscode/
+.idea/
+
+# Exclude CI/CD files
+.gitlab-ci.yml
+cloudbuild.yaml
+
+# Exclude other unnecessary files
+*.log
+.DS_Store

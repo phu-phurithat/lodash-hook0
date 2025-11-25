@@ -1,0 +1,36 @@
+steps:
+
+  # Build API image
+  - name: gcr.io/cloud-builders/docker
+    id: build-api
+    args:
+      [
+        "build",
+        "--file=./api/Dockerfile",
+        "--tag=asia.gcr.io/$PROJECT_ID/${_COMPONENT}:${_IMAGE_TAG}",
+        "--build-arg=FEATURES=reqwest-rustls-tls-webpki-roots,application-secret-compatibility",
+        "."
+      ]
+
+# ------------------------------------------------------------
+# Record built images for Cloud Build UI visibility
+# ------------------------------------------------------------
+images:
+  - "asia.gcr.io/$PROJECT_ID/${_COMPONENT}:${_IMAGE_TAG}"
+
+# ------------------------------------------------------------
+# Substitutions (custom variables)
+# ------------------------------------------------------------
+substitutions:
+  _COMPONENT: "api"
+  _IMAGE_TAG: ${TAG_NAME#api-}
+
+# ------------------------------------------------------------
+# Global options
+# ------------------------------------------------------------
+options:
+  dynamicSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
+  env:
+    - DOCKER_BUILDKIT=1
+    - BUILDKIT_PROGRESS=plain
