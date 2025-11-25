@@ -17,6 +17,17 @@ steps:
           grep -q "syntax=docker/dockerfile" "$f" || sed -i '1i# syntax=docker/dockerfile:1.7' "$f"
         done
 
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME:v2.0.0 || exit 0']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME:v2.0.0 || exit 0']
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull ${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME:v2.0.0 || exit 0']
+    
   # Build API image
   - name: gcr.io/cloud-builders/docker
     id: build-api
@@ -24,11 +35,18 @@ steps:
       [
         "build",
         "--file=./api/Dockerfile",
-        "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME",
+        "--tag=${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME",
+        "--cache-from", "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME:latest",
         "--build-arg=FEATURES=reqwest-rustls-tls-webpki-roots,application-secret-compatibility",
         "."
       ]
     waitFor: ["-"]
+
+  # Tag API image as latest
+  - name: gcr.io/cloud-builders/docker
+    id: tag-api-latest
+    args: ['tag', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:latest']
+    waitFor: ['build-api']
 
   # Build Frontend image
   - name: gcr.io/cloud-builders/docker
@@ -39,11 +57,17 @@ steps:
       [
         "build",
         "--file=./frontend/Dockerfile",
-        "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME",
+        "--tag=${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME",
         "--build-arg=API_ENDPOINT=$_ENV_API_ENDPOINT/api/v1",
         "."
       ]
     waitFor: ["-"]
+
+  # Tag Frontend image as latest
+  - name: gcr.io/cloud-builders/docker
+    id: tag-frontend-latest
+    args: ['tag', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:latest']
+    waitFor: ['build-frontend']
 
   # Build Output-Worker image
   - name: gcr.io/cloud-builders/docker
@@ -52,23 +76,33 @@ steps:
       [
         "build",
         "--file=./output-worker/Dockerfile",
-        "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME",
+        "--tag=${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME",
         "."
       ]
     waitFor: ["-"]
+
+  # Tag Output-Worker image as latest
+  - name: gcr.io/cloud-builders/docker
+    id: tag-worker-latest
+    args: ['tag', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME', '${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:latest']
+    waitFor: ['build-worker']
 
 # ------------------------------------------------------------
 # Record built images for Cloud Build UI visibility
 # ------------------------------------------------------------
 images:
-  - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME"
-  - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME"
-  - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME"
+  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME"
+  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_API}:latest"
+  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME"
+  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:latest"
+  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME"
+  - "${_REGISTRY}/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:latest"
 
 # ------------------------------------------------------------
 # Substitutions (custom variables)
 # ------------------------------------------------------------
 substitutions:
+  _REGISTRY: "asia.gcr.io"
   _DEPLOYMENT_API: hook0-api
   _DEPLOYMENT_FRONTEND: hook0-frontend
   _DEPLOYMENT_OUTPUTWORKER: hook0-outputworker
