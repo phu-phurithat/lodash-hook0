@@ -17,17 +17,18 @@ steps:
   #         grep -q "syntax=docker/dockerfile" "$f" || sed -i '1i# syntax=docker/dockerfile:1.7' "$f"
   #       done
 
-  # # Build API image
-  # - name: gcr.io/cloud-builders/docker
-  #   id: build-api
-  #   args:
-  #     [
-  #       "build",
-  #       "--file=./api/Dockerfile",
-  #       "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME",
-  #       "--build-arg=FEATURES='reqwest-rustls-tls-webpki-roots,application-secret-compatibility'",
-  #       "."
-  #     ]
+  # Build API image
+  - name: gcr.io/cloud-builders/docker
+    id: build-api
+    args:
+      [
+        "build",
+        "--file=./api/Dockerfile",
+        "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME",
+        "--build-arg=FEATURES='reqwest-rustls-tls-webpki-roots,application-secret-compatibility'",
+        "."
+      ]
+    waitFor: ["-"]
 
   # Build Frontend image
   - name: gcr.io/cloud-builders/docker
@@ -42,25 +43,27 @@ steps:
         "--build-arg=API_ENDPOINT=$_ENV_API_ENDPOINT/api/v1",
         "."
       ]
+    waitFor: ["-"]
 
-  # # Build Output-Worker image
-  # - name: gcr.io/cloud-builders/docker
-  #   id: build-worker
-  #   args:
-  #     [
-  #       "build",
-  #       "--file=./output-worker/Dockerfile",
-  #       "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME",
-  #       "."
-  #     ]
+  # Build Output-Worker image
+  - name: gcr.io/cloud-builders/docker
+    id: build-worker
+    args:
+      [
+        "build",
+        "--file=./output-worker/Dockerfile",
+        "--tag=asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME",
+        "."
+      ]
+    waitFor: ["-"]
 
 # ------------------------------------------------------------
 # Record built images for Cloud Build UI visibility
 # ------------------------------------------------------------
 images:
-  # - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME"
+  - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_API}:$TAG_NAME"
   - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_FRONTEND}:$TAG_NAME"
-  # - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME"
+  - "asia.gcr.io/$PROJECT_ID/${_DEPLOYMENT_OUTPUTWORKER}:$TAG_NAME"
 
 # ------------------------------------------------------------
 # Substitutions (custom variables)
@@ -75,6 +78,7 @@ substitutions:
 # Global options
 # ------------------------------------------------------------
 options:
+  machineType: "E2_HIGHCPU_8"
   logging: CLOUD_LOGGING_ONLY
   env:
     - DOCKER_BUILDKIT=1
